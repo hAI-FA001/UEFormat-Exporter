@@ -39,12 +39,12 @@ class FArchiveWriter:
         return number_bytes_written
     
     def write_string(self, string: str) -> int:
-        number_bytes_written = self.file.write(string.encode())
+        number_bytes_written = self.file.write(string.encode(encoding="utf-8"))
         return number_bytes_written
     
     def write_fstring(self, fstring: str) -> int:
         number_bytes_written = self.file.write(struct.pack("i", len(fstring)))
-        number_bytes_written += self.file.write(fstring.encode())
+        number_bytes_written += self.file.write(fstring.encode(encoding="utf-8"))
         return number_bytes_written
     
     def write_int(self, integer: int) -> int:
@@ -79,6 +79,6 @@ class FArchiveWriter:
         number_bytes_written = self.file.write(struct.pack("B"*len(byte_vec), *byte_vec))
         return number_bytes_written
     
-    def pad_with_int(self, size: int) -> int:
+    def pad(self, size: int) -> int:
         number_bytes_written = self.file.write(struct.pack("B"*size, *([0]*size)))
         return number_bytes_written

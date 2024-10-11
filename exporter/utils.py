@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 def write_byte_size_wrapper(ar: FArchiveWriter, fn: Callable[[FArchiveWriter], int]):
     pos_before = ar.tell()
-    ar.pad_with_int(1)
+    ar.pad(4)
 
     total_bytes_written = fn(ar)
     pos_after = ar.tell()
