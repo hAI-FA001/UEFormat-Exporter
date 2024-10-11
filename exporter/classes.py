@@ -47,18 +47,18 @@ class UEModelLOD:
 
         number_bytes_for_vertices = ar.write_fstring("VERTICES")
         flattened_verts = lod.vertices.flatten()
-        number_bytes_for_vertices += ar.write_int(flattened_verts.shape // 3)
+        number_bytes_for_vertices += ar.write_int(flattened_verts.shape[0] // 3)
         number_bytes_for_vertices += write_byte_size_wrapper(ar, lambda ar: ar.write_float_vector(flattened_verts))
 
         number_bytes_for_indices = ar.write_fstring("INDICES")
         flattened_indices = lod.indices.flatten()
-        number_bytes_for_indices += ar.write_int(flattened_indices.shape)
+        number_bytes_for_indices += ar.write_int(flattened_indices.shape[0])
         number_bytes_for_indices += write_byte_size_wrapper(ar, lambda ar: ar.write_int_vector(flattened_indices))
 
         number_bytes_for_normals = ar.write_fstring("NORMALS")
         # TODO: lod.normals has xyz instead of wxyz, need to handle that
         flattened_normals = lod.normals.flatten()
-        number_bytes_for_normals += ar.write_int(flattened_normals.shape // 4)
+        number_bytes_for_normals += ar.write_int(flattened_normals.shape[0] // 4)
         number_bytes_for_normals += write_byte_size_wrapper(ar, lambda ar: ar.write_float_vector(flattened_normals))
         
         # TODO: TANGENTS section
@@ -71,7 +71,7 @@ class UEModelLOD:
         number_bytes_for_texcoords += ar.write_int(len(lod.uvs))
         def write_uvs(ar: FArchiveWriter, uv: npt.NDArray):
             flattened_uv = uv.reshape(-1)
-            total_bytes_written = ar.write_int(flattened_uv.shape // 2)
+            total_bytes_written = ar.write_int(flattened_uv.shape[0] // 2)
             total_bytes_written += ar.write_float_vector(tuple(flattened_uv))
             return total_bytes_written
         number_bytes_for_texcoords += write_byte_size_wrapper(ar, lambda ar: sum([write_uvs(ar, uv) for uv in lod.uvs]))
@@ -124,12 +124,12 @@ class ConvexCollision:
         number_bytes_written = ar.write_fstring(coll.name)
         
         flattened = coll.vertices.reshape(-1)  # TODO: maybe use scale to undo scale
-        vertices_count = flattened.shape
+        vertices_count = flattened.shape[0]
         number_bytes_written += ar.write_int( vertices_count // 3)
         number_bytes_written += ar.write_float_vector(tuple(flattened))
 
         flattened = coll.indices.reshape(-1)
-        indices_count = flattened.shape
+        indices_count = flattened.shape[0]
         number_bytes_written += ar.write_int(indices_count)
         number_bytes_written += ar.write_int_vector(tuple(flattened))
 
@@ -143,7 +143,7 @@ class VertexColor:
 
         original_array = (vcol.data.astype(np.int32) * 255)
         flattened = original_array.reshape(-1)
-        count = flattened.shape
+        count = flattened.shape[0]
         
         number_bytes_written += ar.write_int(count // 4)
         number_bytes_written += ar.write_byte_vector(tuple(flattened))
