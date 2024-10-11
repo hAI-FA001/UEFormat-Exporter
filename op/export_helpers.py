@@ -5,6 +5,7 @@ from bpy.props import CollectionProperty, StringProperty
 from bpy.types import Operator, OperatorFileListElement
 from bpy_extras.io_utils import ExportHelper
 
+from ..exporter.logic import UEFormatExport
 from .panels import UEFORMAT_PT_Panel
 from ..ue_typing import UFormatContext
 from ..options import UEFormatOptions, UEModelOptions
@@ -27,6 +28,7 @@ class UFExportBase(Operator, ExportHelper, Generic[T]):
         directory = Path(self.directory)
         for file in self.files:
             file: OperatorFileListElement
+            UEFormatExport(options).export_file(directory / file.name)
         
         return {"FINISHED"}
 
