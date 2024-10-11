@@ -4,14 +4,14 @@ from dataclasses import dataclass, fields
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .op.settings import UFSettings
+    from .op.settings import UMESettings
 
 @dataclass(slots=True)
 class UEFormatOptions:
     scale_factor: float = 0.01
 
     @classmethod
-    def from_settings(cls, settings: UFSettings) -> UEFormatOptions:
+    def from_settings(cls, settings: UMESettings) -> UEFormatOptions:
         field_names = {field.name for field in fields(cls)}
         return cls(**{k: v for k, v in settings.get_props().items() if k in field_names})
 

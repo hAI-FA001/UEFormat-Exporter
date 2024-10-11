@@ -6,7 +6,7 @@ from bpy.types import Operator, OperatorFileListElement
 from bpy_extras.io_utils import ExportHelper
 
 from ..exporter.logic import UEFormatExport
-from .panels import UEFORMAT_PT_Panel
+from .panels import UEEXPORT_PT_Panel
 from ..ue_typing import UFormatContext
 from ..options import UEFormatOptions, UEModelOptions
 
@@ -43,8 +43,8 @@ class UFExportUEModel(UFExportBase):
     options_class = UEModelOptions
 
     def draw(self, context: UFormatContext) -> None:
-        UEFORMAT_PT_Panel.draw_general_options(self, context.scene.ume_settings)
-        UEFORMAT_PT_Panel.draw_model_options(
+        UEEXPORT_PT_Panel.draw_general_options(self, context.scene.ume_settings)
+        UEEXPORT_PT_Panel.draw_model_options(
             self,
             context.scene.ume_settings,
             export_menu=True

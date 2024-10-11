@@ -2,10 +2,10 @@ from typing import cast
 
 from bpy.types import Context, Operator, Panel
 
-from ..ue_typing import UFormatContext, UFSettings
+from ..ue_typing import UFormatContext, UMESettings
 
 
-class UEFORMAT_PT_Panel(Panel):
+class UEEXPORT_PT_Panel(Panel):
     bl_category = "UE Format"
     bl_label = "UE Format"
     bl_region_type = "UI"
@@ -21,7 +21,7 @@ class UEFORMAT_PT_Panel(Panel):
         self.draw_model_options(self, ume_settings)
     
     @staticmethod
-    def draw_general_options(obj: Panel | Operator, settings: UFSettings) -> None:
+    def draw_general_options(obj: Panel | Operator, settings: UMESettings) -> None:
         box = obj.layout.box()
         box.label(text="General", icon="SETTINGS")
         box.row().prop(settings, "scale_factor")
@@ -29,7 +29,7 @@ class UEFORMAT_PT_Panel(Panel):
     @staticmethod
     def draw_model_options(
         obj: Panel | Operator,
-        settings: UFSettings,
+        settings: UMESettings,
         *,
         export_menu: bool = False
     ) -> None:
