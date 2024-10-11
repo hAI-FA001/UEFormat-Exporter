@@ -25,6 +25,7 @@ class UEModel:
 
         if model.skeleton is not None:
             ar.write_fstring("SKELETON")
+            ar.write_int(1)
             not_none_skel: importer.classes.UEModelSkeleton = model.skeleton
             write_byte_size_wrapper(ar, lambda ar: UEModelSkeleton.to_archive(not_none_skel, ar))
             
@@ -42,7 +43,7 @@ class UEModelLOD:
     ) -> int:
         number_bytes_in_lod_name = ar.write_fstring(lod.name)
         pos_before = ar.tell()
-        ar.pad_with_int(1)
+        ar.pad(4)
 
 
         number_bytes_for_vertices = ar.write_fstring("VERTICES")
@@ -115,7 +116,7 @@ class UEModelSkeleton:
         number_bytes_for_virtual_bones += ar.write_int(len(skel.virtual_bones))
         number_bytes_for_virtual_bones += write_byte_size_wrapper(ar, lambda ar: sum([VirtualBone.to_archive(vbone, ar) for vbone in skel.virtual_bones]))
         
-        return number_bytes_for_bones + number_bytes_for_bones + number_bytes_for_virtual_bones
+        return number_bytes_for_bones + number_bytes_for_sockets + number_bytes_for_virtual_bones
 
 
 class ConvexCollision:
