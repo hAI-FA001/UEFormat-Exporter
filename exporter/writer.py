@@ -54,7 +54,7 @@ class FArchiveWriter:
     def write_int_vector(self, int_vec: tuple[int, ...] | npt.NDArray) -> int:
         if type(int_vec) == npt.NDArray:
             int_vec = tuple(int_vec)
-        number_bytes_written = self.file.write(struct.pack("I"*len(int_vec), int_vec))
+        number_bytes_written = self.file.write(struct.pack("I"*len(int_vec), *int_vec))
         return number_bytes_written
     
     def write_short(self, short: int) -> int:
@@ -72,13 +72,13 @@ class FArchiveWriter:
     def write_float_vector(self, float_vec: tuple[float, ...] | npt.NDArray) -> int:
         if type(float_vec) == npt.NDArray:
             float_vec = tuple(float_vec)
-        number_bytes_written = self.file.write(struct.pack("f"*len(float_vec), float_vec))
+        number_bytes_written = self.file.write(struct.pack("f"*len(float_vec), *float_vec))
         return number_bytes_written
     
     def write_byte_vector(self, byte_vec: tuple[int, ...]) -> int:
-        number_bytes_written = self.file.write(struct.pack("B"*len(byte_vec), byte_vec))
+        number_bytes_written = self.file.write(struct.pack("B"*len(byte_vec), *byte_vec))
         return number_bytes_written
     
     def pad_with_int(self, size: int) -> int:
-        number_bytes_written = self.file.write(struct.pack("B"*size, [0]*size))
+        number_bytes_written = self.file.write(struct.pack("B"*size, *([0]*size)))
         return number_bytes_written
