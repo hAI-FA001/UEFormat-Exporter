@@ -16,8 +16,8 @@ class UFExportBase(Operator, ExportHelper, Generic[T]):
     files: CollectionProperty(
         type=OperatorFileListElement,
         options={"HIDDEN", "SKIP_SAVE"}
-    )
-    directory: StringProperty(subtype="DIR_PATH")
+    ) # type: ignore[reportInvalidTypeForm]
+    directory: StringProperty(subtype="DIR_PATH") # type: ignore[reportInvalidTypeForm]
 
     options_class: type[T]
 
@@ -36,7 +36,7 @@ class UFExportUEModel(UFExportBase):
     bl_label = "Export Model"
 
     filename_ext = ".uemodel"
-    filter_glob: StringProperty(default="*.uemodel", options={"HIDDEN"}, maxlen=255)
+    filter_glob: StringProperty(default="*.uemodel", options={"HIDDEN"}, maxlen=255) # type: ignore[reportInvalidTypeForm]
 
     options_class = UEModelOptions
 
