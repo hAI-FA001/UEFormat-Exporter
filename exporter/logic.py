@@ -5,7 +5,7 @@ from typing import cast
 
 import numpy as np
 import bpy
-from bpy.types import Mesh, Armature, ShapeKey, MeshVertex, ByteColorAttribute, Material, BoneCollection, PoseBone, KinematicConstraint
+from bpy.types import Mesh, Armature, ShapeKey, ByteColorAttribute, Material, BoneCollection, PoseBone, KinematicConstraint, ArmatureModifier, ShapeKeyPoint
 
 from .classes import UEModel
 from .writer import FArchiveWriter
@@ -85,14 +85,19 @@ class UEFormatExport:
                     lod.tangents = mesh.calc_tangents()
                     
                     lod.weights = []
-                    armature: Armature = obj.find_armature()
+                    armature_of_this_obj: Armature = None
+                    for modifier in obj.modifiers:
+                        if isinstance(modifier, ArmatureModifier):
+                            armature_of_this_obj = modifier.object.data
+                            break
+
                     for vgroup in obj.vertex_groups:
                         for vert in verts:
                             for group in vert.groups:
                                 if group.group == vgroup.index:
                                     weight = importer.classes.Weight(0, 0, 0.0)
                                     
-                                    weight.bone_index = armature.bones.find(vgroup.name)
+                                    weight.bone_index = armature_of_this_obj.bones.find(vgroup.name)
                                     weight.vertex_index = vert.index
                                     weight.weight = group.weight
                                     
@@ -100,19 +105,18 @@ class UEFormatExport:
                                     break
 
                     lod.morphs = []
-                    for key in mesh.shape_keys.key_blocks:
-                        key: ShapeKey
-                        morph = importer.classes.MorphTarget(key.name, deltas=[])
-                        key.data
-                        for vertex_index in key.data:
-                            vertex_index = cast(int, vertex_index)
-                            delta = importer.classes.MorphTargetData([], (0, 0, 0), vertex_index)
-                            
-                            vertex = cast(MeshVertex, key.data[vertex_index])
-                            delta.position = list(vertex.co.to_3d().to_tuple())
-                            delta.normals = tuple(vertex.normal.to_3d().to_tuple())
-                            
-                            morph.deltas.append(delta)
+                    if mesh.shape_keys:
+                        for key in mesh.shape_keys.key_blocks:
+                            key: ShapeKey
+                            morph = importer.classes.MorphTarget(key.name, deltas=[])
+                            for idx in range(len(key.data)):
+                                delta = importer.classes.MorphTargetData([], (0, 0, 0), idx)
+                                
+                                keyPoint: ShapeKeyPoint = key.data[idx]
+                                delta.position = list(keyPoint.co.to_3d().to_tuple())
+                                delta.normals = key.normals_vertex_get()
+                                
+                                morph.deltas.append(delta)
 
                     
                     lod.colors = []
@@ -135,10 +139,13 @@ class UEFormatExport:
                     mat2Poly: dict[int, list[int]] = {}
                     for poly in mesh.polygons:
                         mat2Poly[poly.material_index] = mat2Poly.get(poly.material_index, []) + [poly.index]
-                    for i, material in mesh.materials:
+                    for i, material in enumerate(mesh.materials):
                         material: Material
                         
-                        polys = mat2Poly[i]
+                        try:
+                            polys = mat2Poly[i]
+                        except KeyError:
+                            continue
                         polys.sort()
                         start = 0
                         end = 1
