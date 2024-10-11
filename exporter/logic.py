@@ -77,12 +77,9 @@ class UEFormatExport:
                     lod.vertices = ue_verts
                     lod.indices = ue_indices
                     
-                    lod.normals = np.array([v.normal for v in verts], dtype=np.float32)
-                    norms = []
-                    mesh.loops.foreach_get("normal", norms)
-                    lod.normals = np.array(norms, dtype=np.float32)
+                    lod.normals = np.array([v.normal.to_4d() for v in verts], dtype=np.float32)
                     
-                    lod.tangents = mesh.calc_tangents()
+                    lod.tangents = mesh.calc_tangents()  # TODO: doesn't seem to work
                     
                     lod.weights = []
                     armature_of_this_obj: Armature = None
@@ -131,9 +128,10 @@ class UEFormatExport:
                     
                     lod.uvs = []
                     for uv_layer in mesh.uv_layers:
+                        lod_uv = []
                         for uv in uv_layer.uv:
-                            lod_uv = np.array(uv.vector.to_tuple(), dtype=np.float32)
-                            lod.uvs.append(lod_uv)
+                            lod_uv.append(np.array(uv.vector.to_tuple(), dtype=np.float32))
+                        lod.uvs.append(np.array(lod_uv))
 
                     lod.materials = []
                     mat2Poly: dict[int, list[int]] = {}
@@ -171,15 +169,15 @@ class UEFormatExport:
                 skeleton = importer.classes.UEModelSkeleton()
 
                 bpy.ops.object.mode_set(mode="EDIT")
-                edit_bones = armature.edit_bones
+                edit_bones = armature.bones
                 for edit_bone in edit_bones:
                     bone = importer.classes.Bone(edit_bone.name, -1, [], (0.0, 0.0, 0.0, 0.0))
-                    translation, rotation, _ = edit_bone.matrix.decompose()
+                    translation, rotation, _ = edit_bone.matrix.to_4x4().decompose()
                     bone.position = list(translation.to_tuple())
                     bone.rotation = (rotation.w, rotation.x, rotation.y, rotation.z)
 
                     if edit_bone.parent:
-                        bone.parent_index = armature.edit_bones.find(edit_bone.parent.name)
+                        bone.parent_index = armature.bones.find(edit_bone.parent.name)
                     
                     skeleton.bones.append(bone)
                     
