@@ -140,19 +140,31 @@ class UEFormatExport:
                             lod.colors.append(vcolor)
 
                         
-                        # TODO: fix uvs
+                        bm = bmesh.new()
+                        bm.from_mesh(mesh)
+                        bpy.ops.object.mode_set(mode="EDIT")
+                        
                         lod.uvs = []
-                        for uv_layer in mesh.uv_layers:
-                            lod_uv = []
-                            for uv in uv_layer.uv:
-                                lod_uv.append(np.array(uv.vector.to_tuple(), dtype=np.float32))
-                            lod.uvs.append(np.array(lod_uv))
+                        uv_layer = bm.loops.layers.uv.active
+                        lod_uv = [None] * len(bm.verts)
+                        for v in bm.verts:
+                            for l in v.link_loops:
+                                # only get the first UV
+                                lod_uv[v.index] = np.array(l[uv_layer].uv.to_tuple(), dtype=np.float32)
+                                break
+                        lod.uvs.append(np.array(lod_uv))
+                        
+                        bpy.ops.object.mode_set(mode="OBJECT")
+                        bm.to_mesh(mesh)
+                        bm.free()
+                        
 
 
                         lod.materials = []
                         mat2Poly: dict[int, list[int]] = {}
                         for poly in mesh.polygons:
                             mat2Poly[poly.material_index] = mat2Poly.get(poly.material_index, []) + [poly.index]
+                        
                         for i, material in enumerate(mesh.materials):
                             material: Material
                             
