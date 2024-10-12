@@ -4,8 +4,10 @@ from pathlib import Path
 from typing import cast
 
 import numpy as np
+import bmesh
 import bpy
-from bpy.types import Mesh, Armature, ShapeKey, ByteColorAttribute, Material, BoneCollection, PoseBone, KinematicConstraint, ArmatureModifier, ShapeKeyPoint
+from bpy.types import Mesh, Armature, ShapeKey, ByteColorAttribute, Material, BoneCollection, PoseBone, KinematicConstraint, ArmatureModifier, ShapeKeyPoint, MeshVertex
+from mathutils import Vector, Quaternion
 
 from .classes import UEModel
 from .writer import FArchiveWriter
@@ -67,6 +69,15 @@ class UEFormatExport:
         for obj in bpy.data.objects:
             if obj.type == "MESH":
                 mesh: Mesh = cast(Mesh, obj.data)
+                
+                bm = bmesh.new()
+                bm.from_mesh(mesh)
+                bpy.ops.object.mode_set(mode="EDIT")
+                bmesh.ops.triangulate(bm, faces=bm.faces)
+                bpy.ops.object.mode_set(mode="OBJECT")
+                bm.to_mesh(mesh)
+                bm.free()
+                
                 verts = [v for v in mesh.vertices]
                 ue_verts = np.array([v.co for v in verts], dtype=np.float32)
                 ue_indices = np.array([list(poly.vertices) for poly in mesh.polygons], dtype=np.int32)
@@ -76,10 +87,7 @@ class UEFormatExport:
                         
                     lod.vertices = ue_verts
                     lod.indices = ue_indices
-                    
-                    lod.normals = np.array([v.normal.to_4d() for v in verts], dtype=np.float32)
-                    
-                    lod.tangents = mesh.calc_tangents()  # TODO: doesn't seem to work
+                    lod.normals = np.array([v.normal.to_4d().wxyz for v in verts], dtype=np.float32)
                     
                     lod.weights = []
                     armature_of_this_obj: Armature = None
@@ -106,14 +114,17 @@ class UEFormatExport:
                         for key in mesh.shape_keys.key_blocks:
                             key: ShapeKey
                             morph = importer.classes.MorphTarget(key.name, deltas=[])
+                            morphTargetNormals = np.array(key.normals_vertex_get()).reshape((-1, 3))
                             for idx in range(len(key.data)):
                                 delta = importer.classes.MorphTargetData([], (0, 0, 0), idx)
                                 
                                 keyPoint: ShapeKeyPoint = key.data[idx]
                                 delta.position = list(keyPoint.co.to_3d().to_tuple())
-                                delta.normals = key.normals_vertex_get()
+                                delta.normals = morphTargetNormals[idx]
                                 
                                 morph.deltas.append(delta)
+                            
+                            lod.morphs.append(morph)
 
                     
                     lod.colors = []

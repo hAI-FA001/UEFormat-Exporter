@@ -187,6 +187,7 @@ class MorphTarget:
     @classmethod
     def to_archive(cls, morphTarget: importer.classes.MorphTarget, ar: FArchiveWriter) -> int:
         number_bytes_written = ar.write_fstring(morphTarget.name)
+        number_bytes_written += ar.write_int(len(morphTarget.deltas))
         for morphTargetData in morphTarget.deltas:
             number_bytes_written += MorphTargetData.to_archive(morphTargetData, ar)
         return number_bytes_written
