@@ -66,8 +66,11 @@ class UEFormatExport:
         skeleton: uf_classes.UEModelSkeleton | None = None
 
         for obj in bpy.data.objects:
+            if self.options.export_selected_only and not obj.select_get():
+                continue
             with bpy.context.temp_override(selected_objects=[obj]):
-                if obj.type == "MESH":
+                if obj.type == "MESH" \
+                and (self.options.export_lods or self.options.export_collision):
                     mesh: Mesh = cast(Mesh, obj.data)
                     
                     bm = bmesh.new()
@@ -82,7 +85,7 @@ class UEFormatExport:
                     ue_verts = np.array([v.co for v in verts], dtype=np.float32)
                     ue_indices = np.array([list(poly.vertices) for poly in mesh.polygons], dtype=np.int32)
                     
-                    if obj.display_type != "WIRE":
+                    if obj.display_type != "WIRE" and self.options.export_lods:
                         lod = uf_classes.UEModelLOD(obj.name)
                             
                         lod.vertices = ue_verts
@@ -194,7 +197,7 @@ class UEFormatExport:
                         
                         lods.append(lod)
 
-                    else:
+                    elif self.options.export_collision:
                         collision = uf_classes.ConvexCollision(obj.name, ue_verts, ue_indices)
                         collisions.append(collision)
 
@@ -217,7 +220,7 @@ class UEFormatExport:
                         skeleton.bones.append(bone)
 
 
-                    if armature.collections.find("Sockets") != -1:
+                    if armature.collections.find("Sockets") != -1 and self.options.export_sockets:
                         socket_collection: BoneCollection = armature.collections["Sockets"]
                         for socket in socket_collection.bones:
                             lod_socket: uf_classes.Socket = uf_classes.Socket(socket.name, "", [], (0,), (0,))
@@ -246,7 +249,7 @@ class UEFormatExport:
                                 skeleton.bones.pop(idx)
                             
 
-                    if armature.collections.find("Virtual Bones") != -1:
+                    if armature.collections.find("Virtual Bones") != -1 and self.options.export_virtual_bones:
 
                         virtual_bone_collection: BoneCollection = armature.collections["Virtual Bones"]
                         for bone in virtual_bone_collection.bones:
@@ -295,4 +298,4 @@ class UEFormatExport:
             uemodel.skeleton = skeleton
         
         if uemodel.lods or uemodel.collisions or uemodel.skeleton:
-            UEModel.to_archive(uemodel, ar)
+            UEModel.to_archive(uemodel, ar, self.options.scale_factor)

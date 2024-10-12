@@ -35,13 +35,14 @@ class UEEXPORT_PT_Panel(Panel):
     ) -> None:
         box = obj.layout.box()
         box.label(text="Model", icon="OUTLINER_OB_MESH")
+        box.row().prop(settings, "export_selected_only")
         box.row().prop(settings, "export_lods")
         box.row().prop(settings, "export_collision")
         box.row().prop(settings, "export_morph_targets")
-        # box.row().prop(settings, "export_sockets")
+        box.row().prop(settings, "export_sockets")
         box.row().prop(settings, "export_virtual_bones")
         # box.row().prop(settings, "reorient_bones")
-        box.row().prop(settings, "bone_length")
+        # box.row().prop(settings, "bone_length")
 
         if not export_menu:
             box.row().operator("uf.export_uemodel", icon="MESH_DATA")
