@@ -126,7 +126,7 @@ class ConvexCollision:
         
         flattened = coll.vertices.reshape(-1)  # TODO: maybe use scale to undo scale
         vertices_count = flattened.shape[0]
-        number_bytes_written += ar.write_int( vertices_count // 3)
+        number_bytes_written += ar.write_int(vertices_count // 3)
         number_bytes_written += ar.write_float_vector(tuple(flattened))
 
         flattened = coll.indices.reshape(-1)

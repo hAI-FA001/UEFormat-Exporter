@@ -88,6 +88,9 @@ class UEFormatExport:
                     lod.vertices = ue_verts
                     lod.indices = ue_indices
                     lod.normals = np.array([v.normal.to_4d().wxyz for v in verts], dtype=np.float32)
+                    if mesh.uv_layers:
+                        mesh.calc_tangents(uvmap=mesh.uv_layers[0].name)
+                        lod.tangents = np.array([loop.tangent for loop in mesh.loops])
                     
                     lod.weights = []
                     armature_of_this_obj: Armature = None
@@ -137,12 +140,14 @@ class UEFormatExport:
                         lod.colors.append(vcolor)
 
                     
+                    # TODO: fix uvs
                     lod.uvs = []
                     for uv_layer in mesh.uv_layers:
                         lod_uv = []
                         for uv in uv_layer.uv:
                             lod_uv.append(np.array(uv.vector.to_tuple(), dtype=np.float32))
                         lod.uvs.append(np.array(lod_uv))
+
 
                     lod.materials = []
                     mat2Poly: dict[int, list[int]] = {}
@@ -151,10 +156,12 @@ class UEFormatExport:
                     for i, material in enumerate(mesh.materials):
                         material: Material
                         
+                        # this happens if the material isn't used by any vertex
                         try:
                             polys = mat2Poly[i]
                         except KeyError:
                             continue
+
                         polys.sort()
                         start = 0
                         end = 1
@@ -171,6 +178,7 @@ class UEFormatExport:
                             start = end
                     
                     lods.append(lod)
+
                 else:
                     collision = importer.classes.ConvexCollision(obj.name, ue_verts, ue_indices)
                     collisions.append(collision)
