@@ -1,2 +1,5 @@
 venv/
 **/**pycache**
+*.zip
+blender_vscode_development/
+*.uemodel
