@@ -163,19 +163,22 @@ class UEFormatExport:
                                 continue
 
                             polys.sort()
-                            start = 0
-                            end = 1
-                            while end < len(polys):
-                                # expand  the window [start, end] as long as these are consecutive faces
-                                while end < len(polys) and polys[end] - polys[start] == end - start:
-                                    end += 1
 
-                                lod_mat = uf_classes.Material(material.name, 0, 0)
-                                lod_mat.first_index = polys[start]
-                                lod_mat.num_faces = end - start
+                            startPoly = 0
+                            endPoly = 0
+                            while endPoly < len(polys):
+                                # get consecutive polys
+                                while endPoly+1 < len(polys) and polys[endPoly+1] - polys[endPoly] == 1:
+                                    endPoly += 1
+                                lod_mat = uf_classes.Material(
+                                    material.name,
+                                    3 * polys[startPoly],
+                                    endPoly - startPoly + 1
+                                )
                                 lod.materials.append(lod_mat)
                                 
-                                start = end
+                                start = endPoly + 1
+                                endPoly = start
                         
                         lods.append(lod)
 
