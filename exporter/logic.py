@@ -14,7 +14,7 @@ from .writer import FArchiveWriter
 from ..options import UEFormatOptions
 
 from io_scene_ueformat.logging import Log
-import io_scene_ueformat.importer as importer
+import io_scene_ueformat.importer.classes as uf_classes
 from io_scene_ueformat.importer.classes import (
     ANIM_IDENTIFIER,
     MAGIC,
@@ -42,7 +42,7 @@ class UEFormatExport:
             
             # for now, only handle models
             identifier = MODEL_IDENTIFIER
-            self.file_version = importer.classes.EUEFormatVersion.LatestVersion
+            self.file_version = uf_classes.EUEFormatVersion.LatestVersion
             object_name = "object1"  # TODO: correct object name
             
             ar.write_string(MAGIC)
@@ -57,13 +57,13 @@ class UEFormatExport:
             ar.write_bool(is_compressed)
 
             # for now, only handle UEModel
-            if True: #isinstance(obj, importer.classes.UEModel):
+            if True: #isinstance(obj, uf_classes.UEModel):
                 self.export_uemodel_data(ar)
     
     def export_uemodel_data(self, ar: FArchiveWriter) -> None:
-        lods: list[importer.classes.UEModelLOD] = []
-        collisions: list[importer.classes.ConvexCollision] = []
-        skeleton: importer.classes.UEModelSkeleton | None = None
+        lods: list[uf_classes.UEModelLOD] = []
+        collisions: list[uf_classes.ConvexCollision] = []
+        skeleton: uf_classes.UEModelSkeleton | None = None
 
         for obj in bpy.data.objects:
             with bpy.context.temp_override(selected_objects=[obj]):
@@ -83,7 +83,7 @@ class UEFormatExport:
                     ue_indices = np.array([list(poly.vertices) for poly in mesh.polygons], dtype=np.int32)
                     
                     if obj.display_type != "WIRE":
-                        lod = importer.classes.UEModelLOD(obj.name)
+                        lod = uf_classes.UEModelLOD(obj.name)
                             
                         lod.vertices = ue_verts
                         lod.indices = ue_indices
@@ -103,7 +103,7 @@ class UEFormatExport:
                             for vert in verts:
                                 for group in vert.groups:
                                     if group.group == vgroup.index:
-                                        weight = importer.classes.Weight(0, 0, 0.0)
+                                        weight = uf_classes.Weight(0, 0, 0.0)
                                         
                                         weight.bone_index = armature_of_this_obj.bones.find(vgroup.name)
                                         weight.vertex_index = vert.index
@@ -116,10 +116,10 @@ class UEFormatExport:
                         if mesh.shape_keys:
                             for key in mesh.shape_keys.key_blocks:
                                 key: ShapeKey
-                                morph = importer.classes.MorphTarget(key.name, deltas=[])
+                                morph = uf_classes.MorphTarget(key.name, deltas=[])
                                 morphTargetNormals = np.array(key.normals_vertex_get()).reshape((-1, 3))
                                 for idx in range(len(key.data)):
-                                    delta = importer.classes.MorphTargetData([], (0, 0, 0), idx)
+                                    delta = uf_classes.MorphTargetData([], (0, 0, 0), idx)
                                     
                                     keyPoint: ShapeKeyPoint = key.data[idx]
                                     delta.position = list(keyPoint.co.to_3d().to_tuple())
@@ -134,7 +134,7 @@ class UEFormatExport:
                         for color_attr in mesh.color_attributes:
                             color_attr = cast(ByteColorAttribute, color_attr)
                             
-                            vcolor = importer.classes.VertexColor(color_attr.name, np.array([]))
+                            vcolor = uf_classes.VertexColor(color_attr.name, np.array([]))
                             vcolor.data = np.array([list(c.color) for c in color_attr.data], dtype=np.float32)
                             
                             lod.colors.append(vcolor)
@@ -170,7 +170,7 @@ class UEFormatExport:
                                 while end < len(polys) and polys[end] - polys[start] == end - start:
                                     end += 1
 
-                                lod_mat = importer.classes.Material(material.name, 0, 0)
+                                lod_mat = uf_classes.Material(material.name, 0, 0)
                                 lod_mat.first_index = polys[start]
                                 lod_mat.num_faces = end - start
                                 lod.materials.append(lod_mat)
@@ -180,16 +180,18 @@ class UEFormatExport:
                         lods.append(lod)
 
                     else:
-                        collision = importer.classes.ConvexCollision(obj.name, ue_verts, ue_indices)
+                        collision = uf_classes.ConvexCollision(obj.name, ue_verts, ue_indices)
                         collisions.append(collision)
 
                 elif obj.type == "ARMATURE":
+                    # TODO: fix bone orientations?
+
                     armature = cast(Armature, obj.data)
-                    skeleton = importer.classes.UEModelSkeleton()
+                    skeleton = uf_classes.UEModelSkeleton()
 
                     armature_bones = armature.bones
                     for a_bone in armature_bones:
-                        bone = importer.classes.Bone(a_bone.name, -1, [], (0.0, 0.0, 0.0, 0.0))
+                        bone = uf_classes.Bone(a_bone.name, -1, [], (0.0, 0.0, 0.0, 0.0))
                         translation, rotation, _ = a_bone.matrix.to_4x4().decompose()
                         bone.position = list(translation.to_tuple())
                         bone.rotation = (rotation.x, rotation.y, rotation.z, rotation.w)
@@ -199,15 +201,42 @@ class UEFormatExport:
                         
                         skeleton.bones.append(bone)
 
-                    # TODO: sockets
+
+                    if armature.collections.find("Sockets") != -1:
+                        socket_collection: BoneCollection = armature.collections["Sockets"]
+                        for socket in socket_collection.bones:
+                            lod_socket: uf_classes.Socket = uf_classes.Socket(socket.name, "", [], (0,), (0,))
+                            
+                            matrix = socket.matrix
+                            
+                            if socket.parent:
+                                lod_socket.parent_name = socket.parent.name
+                                # BoneMatrix is ParentMatrix @ SocketMatrix
+                                # => ParentMatrixInverted @ BoneMatrix is SocketMatrix
+                                matrix = socket.parent.matrix.inverted_safe() @ matrix
+                            
+                            translation, rotation, scale = matrix.to_4x4().decompose()
+                            lod_socket.position = list(translation.to_tuple())
+                            lod_socket.rotation = (rotation.x, rotation.y, rotation.z, rotation.w)
+                            lod_socket.scale = scale
+
+                            skeleton.sockets.append(lod_socket)
+                            
+                            idx = -1
+                            for i, b in enumerate(skeleton.bones):
+                                if b.name == lod_socket.name:
+                                    idx = i
+                                    break
+                            if idx != -1:
+                                skeleton.bones.pop(idx)
+                            
 
                     if armature.collections.find("Virtual Bones") != -1:
 
                         virtual_bone_collection: BoneCollection = armature.collections["Virtual Bones"]
-
                         for bone in virtual_bone_collection.bones:
                             armature_bones = armature.bones
-                            lod_vbone = importer.classes.VirtualBone("", "", bone.name)
+                            lod_vbone = uf_classes.VirtualBone("", "", bone.name)
 
                             for source_bone in armature_bones:
                                 if source_bone.tail == bone.head and source_bone.head == bone.tail:
@@ -242,7 +271,7 @@ class UEFormatExport:
                         bpy.ops.object.mode_set(mode="OBJECT")
                 
             
-        uemodel = importer.classes.UEModel()
+        uemodel = uf_classes.UEModel()
         if lods and len(lods) != 0:
             uemodel.lods = lods
         if collisions and len(collisions) != 0:
