@@ -53,19 +53,19 @@ class UEModelLOD:
         =  number_bytes_for_vertex_colors = number_bytes_for_texcoords = number_bytes_for_materials = number_bytes_for_weights = number_bytes_for_morphs_targets \
         = 0
 
-        if lod.vertices:
+        if lod.vertices is not None:
             number_bytes_for_vertices = ar.write_fstring("VERTICES")
             flattened_verts = lod.vertices.flatten() * scale_factor
             number_bytes_for_vertices += ar.write_int(flattened_verts.shape[0] // 3)
             number_bytes_for_vertices += write_byte_size_wrapper(ar, lambda ar: ar.write_float_vector(flattened_verts))
 
-        if lod.indices:
+        if lod.indices is not None:
             number_bytes_for_indices = ar.write_fstring("INDICES")
             flattened_indices = lod.indices.flatten()
             number_bytes_for_indices += ar.write_int(flattened_indices.shape[0])
             number_bytes_for_indices += write_byte_size_wrapper(ar, lambda ar: ar.write_int_vector(flattened_indices))
 
-        if lod.normals:
+        if lod.normals is not None:
             number_bytes_for_normals = ar.write_fstring("NORMALS")
             flattened_normals = lod.normals.flatten()
             number_bytes_for_normals += ar.write_int(flattened_normals.shape[0] // 4)
@@ -145,13 +145,13 @@ class ConvexCollision:
     def to_archive(cls, coll: uf_classes.ConvexCollision, ar: FArchiveWriter, scale_factor: float) -> int:
         number_bytes_written = ar.write_fstring(coll.name)
         
-        if coll.vertices:
+        if coll.vertices is not None:
             flattened = (coll.vertices * scale_factor).reshape(-1)
             vertices_count = flattened.shape[0]
             number_bytes_written += ar.write_int(vertices_count // 3)
             number_bytes_written += ar.write_float_vector(tuple(flattened))
 
-        if coll.indices:
+        if coll.indices is not None:
             flattened = coll.indices.reshape(-1)
             indices_count = flattened.shape[0]
             number_bytes_written += ar.write_int(indices_count)
