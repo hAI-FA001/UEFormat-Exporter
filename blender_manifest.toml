@@ -26,5 +26,7 @@ paths_exclude_pattern = [
   "__pycache__/",
   ".*",
   "*.zip",
-  "venv/"
+  "venv/",
+  "blender_vscode_development/",
+  "*.uemodel",
 ]

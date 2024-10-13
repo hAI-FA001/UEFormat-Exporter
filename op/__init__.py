@@ -14,7 +14,11 @@ def draw_export_menu(self: Menu, context: Context) -> None:
 
 def register() -> None:
     for operator in operators:
-        bpy.utils.register_class(operator)
+        # try:
+            bpy.utils.register_class(operator)
+        # except ValueError:
+            # bpy.utils.unregister_class(operator)
+            # bpy.utils.register_class(operator)
     
     Scene.ume_settings = PointerProperty(type=UMESettings)
     bpy.types.TOPBAR_MT_file_export.append(draw_export_menu)

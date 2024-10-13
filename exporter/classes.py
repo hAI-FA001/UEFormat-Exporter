@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 import numpy as np
 import numpy.typing as npt
 
-import io_scene_ueformat.importer.classes as uf_classes
+from ..importer import classes as uf_classes
 from .utils import write_byte_size_wrapper
 
 if TYPE_CHECKING:
-    from io_scene_ueformat.exporter.writer import FArchiveWriter
+    from .writer import FArchiveWriter
 
 
 class UEModel:

@@ -13,9 +13,9 @@ from .classes import UEModel
 from .writer import FArchiveWriter
 from ..options import UEFormatOptions
 
-from io_scene_ueformat.logging import Log
-import io_scene_ueformat.importer.classes as uf_classes
-from io_scene_ueformat.importer.classes import (
+from ..importer.logging import Log
+from ..importer import classes as uf_classes
+from ..importer.classes import (
     ANIM_IDENTIFIER,
     MAGIC,
     MODEL_IDENTIFIER,
