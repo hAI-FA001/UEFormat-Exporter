@@ -202,21 +202,24 @@ class UEFormatExport:
                         collisions.append(collision)
 
                 elif obj.type == "ARMATURE":
-                    # TODO: fix bone orientations?
-
                     armature = cast(Armature, obj.data)
                     skeleton = uf_classes.UEModelSkeleton()
 
                     armature_bones = armature.bones
                     for a_bone in armature_bones:
                         bone = uf_classes.Bone(a_bone.name, -1, [], (0.0, 0.0, 0.0, 0.0))
-                        translation, rotation, _ = a_bone.matrix.to_4x4().decompose()
-                        bone.position = list(translation.to_tuple())
-                        bone.rotation = (rotation.x, rotation.y, rotation.z, rotation.w)
+                        bone_matrix = a_bone.matrix_local
 
                         if a_bone.parent:
                             bone.parent_index = armature.bones.find(a_bone.parent.name)
+                            # in import, BlenderMatrix = ParentBlenderMatrix x UFBoneMatrix
+                            # so, UFBoneMatrix = inverted_ParentBlenderMatrix x BlenderMatrix
+                            bone_matrix = armature.bones[a_bone.parent.name].matrix_local.inverted_safe() @ bone_matrix
                         
+                        translation, rotation, _ = bone_matrix.decompose()
+                        bone.position = list(translation.to_tuple())
+                        bone.rotation = (rotation.x, rotation.y, rotation.z, rotation.w)
+
                         skeleton.bones.append(bone)
 
 
