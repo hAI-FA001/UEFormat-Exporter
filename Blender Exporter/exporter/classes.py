@@ -72,6 +72,8 @@ class UEModelLOD:
             number_bytes_for_normals += write_byte_size_wrapper(ar, lambda ar: ar.write_float_vector(flattened_normals))
         
         # TODO: TANGENTS section
+        # leaving this here for later
+        # flattened = np.array(ar.read_float_vector(array_size * 3)).reshape(array_size, 3)
 
         if lod.colors and len(lod.colors) != 0:
             number_bytes_for_vertex_colors = ar.write_fstring("VERTEXCOLORS")
