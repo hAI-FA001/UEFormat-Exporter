@@ -84,7 +84,7 @@ class UEModelLOD:
             number_bytes_for_texcoords = ar.write_fstring("TEXCOORDS")
             number_bytes_for_texcoords += ar.write_int(len(lod.uvs))
             def write_uvs(ar: FArchiveWriter, uv: npt.NDArray):
-                flattened_uv = uv.reshape(-1) * scale_factor
+                flattened_uv = uv.reshape(-1)
                 total_bytes_written = ar.write_int(flattened_uv.shape[0] // 2)
                 total_bytes_written += ar.write_float_vector(tuple(flattened_uv))
                 return total_bytes_written

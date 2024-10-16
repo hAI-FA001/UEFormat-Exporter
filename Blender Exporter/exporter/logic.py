@@ -61,15 +61,17 @@ class UEFormatExport:
     
     def get_obj_name(self):
         # prefer armature name for now
-        for armature in bpy.data.armatures:
-            if self.options.export_selected_only and not armature.id_data.select_get():
+        selected_meshes = []
+        for obj in bpy.data.objects:
+            if self.options.export_selected_only and not obj.select_get():
                 continue
-            return armature.name
+            if obj.type == "ARMATURE":
+                return obj.data.name
+            elif obj.type == "MESH":
+                selected_meshes.append(obj)
         
         if self.options.export_lods or self.options.export_collision:
-            for mesh in bpy.data.meshes:
-                if self.options.export_selected_only and not mesh.id_data.select_get():
-                    continue
+            for mesh in selected_meshes:
                 return mesh.name
         
         return "NO_NAME_FOUND"
@@ -171,7 +173,13 @@ class UEFormatExport:
                                 # only get the first UV
                                 lod_uv[v.index] = np.array(l[uv_layer].uv.to_tuple(), dtype=np.float32)
                                 break
+                        print(np.array(lod_uv))
                         lod.uvs.append(np.array(lod_uv))
+                        
+                        vertices = [vertex for polygon in mesh.polygons for vertex in polygon.vertices]
+                        do_remapping = lambda array, indices: array[indices]
+                        print("REMAPPED: ")
+                        print(do_remapping(np.array(lod_uv), vertices))
                         
                         bpy.ops.object.mode_set(mode="OBJECT")
                         bm.to_mesh(mesh)
