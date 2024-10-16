@@ -1,10 +1,10 @@
 schema_version = "1.0.0"
 
 id = "uemodel_exporter"
-version = "1.0.0"
+version = "1.0.1"
 name = "UEModel Exporter"
 tagline = "Add-on for exporting to .uemodel"
-maintainer = "HAI"
+maintainer = "HAI | Someone1"
 type = "add-on"
 
 tags = ["Import-Export"]
