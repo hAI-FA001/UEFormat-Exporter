@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 @dataclass(slots=True)
 class UEFormatOptions:
-    scale_factor: float = 1.0
+    scale_factor: float = 100
 
     @classmethod
     def from_settings(cls, settings: UMESettings) -> UEFormatOptions:

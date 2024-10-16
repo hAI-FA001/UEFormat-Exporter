@@ -43,7 +43,7 @@ class UEFormatExport:
             # for now, only handle models
             identifier = MODEL_IDENTIFIER
             self.file_version = uf_classes.EUEFormatVersion.LatestVersion
-            object_name = "object1"  # TODO: correct object name
+            object_name = self.get_obj_name()
             
             ar.write_string(MAGIC)
             ar.write_fstring(identifier)
@@ -57,13 +57,29 @@ class UEFormatExport:
             ar.write_bool(is_compressed)
 
             # for now, only handle UEModel
-            if True: #isinstance(obj, uf_classes.UEModel):
-                self.export_uemodel_data(ar)
+            self.export_uemodel_data(ar)
+    
+    def get_obj_name(self):
+        # prefer armature name for now
+        for armature in bpy.data.armatures:
+            if self.options.export_selected_only and not armature.id_data.select_get():
+                continue
+            return armature.name
+        
+        if self.options.export_lods or self.options.export_collision:
+            for mesh in bpy.data.meshes:
+                if self.options.export_selected_only and not mesh.id_data.select_get():
+                    continue
+                return mesh.name
+        
+        return "NO_NAME_FOUND"
     
     def export_uemodel_data(self, ar: FArchiveWriter) -> None:
         lods: list[uf_classes.UEModelLOD] = []
         collisions: list[uf_classes.ConvexCollision] = []
         skeleton: uf_classes.UEModelSkeleton | None = None
+        
+        socket_idxs = []
 
         for obj in bpy.data.objects:
             if self.options.export_selected_only and not obj.select_get():
@@ -195,6 +211,7 @@ class UEFormatExport:
                                 start = endPoly + 1
                                 endPoly = start
                         
+                        lod.name = "LOD0"
                         lods.append(lod)
 
                     elif self.options.export_collision:
@@ -202,11 +219,16 @@ class UEFormatExport:
                         collisions.append(collision)
 
                 elif obj.type == "ARMATURE":
+                    socket_idxs = []  # reset socket idxs if more than 1 armature, TODO: more than 1 armature?
+                    
                     armature = cast(Armature, obj.data)
                     skeleton = uf_classes.UEModelSkeleton()
-
-                    armature_bones = armature.bones
-                    for a_bone in armature_bones:
+                    sockets_exist = armature.collections.find("Sockets") != -1
+                  
+                    for idx, a_bone in enumerate(armature.bones):
+                        if sockets_exist and a_bone.name in armature.collections["Sockets"].bones:
+                            socket_idxs.append(idx)
+                        
                         bone = uf_classes.Bone(a_bone.name, -1, [], (0.0, 0.0, 0.0, 0.0))
                         bone_matrix = a_bone.matrix_local
 
@@ -221,35 +243,25 @@ class UEFormatExport:
                         bone.rotation = (rotation.x, rotation.y, rotation.z, rotation.w)
 
                         skeleton.bones.append(bone)
-
-
+                        
+                        
                     if armature.collections.find("Sockets") != -1 and self.options.export_sockets:
                         socket_collection: BoneCollection = armature.collections["Sockets"]
                         for socket in socket_collection.bones:
                             lod_socket: uf_classes.Socket = uf_classes.Socket(socket.name, "", [], (0,), (0,))
                             
-                            matrix = socket.matrix
+                            bone_matrix = socket.matrix_local
                             
                             if socket.parent:
                                 lod_socket.parent_name = socket.parent.name
-                                # BoneMatrix is ParentMatrix @ SocketMatrix
-                                # => ParentMatrixInverted @ BoneMatrix is SocketMatrix
-                                matrix = socket.parent.matrix.inverted_safe() @ matrix
+                                bone_matrix = armature.bones[socket.parent.name].matrix_local.inverted_safe() @ bone_matrix
                             
-                            translation, rotation, scale = matrix.to_4x4().decompose()
+                            translation, rotation, scale = bone_matrix.decompose()
                             lod_socket.position = list(translation.to_tuple())
                             lod_socket.rotation = (rotation.x, rotation.y, rotation.z, rotation.w)
                             lod_socket.scale = scale
 
                             skeleton.sockets.append(lod_socket)
-                            
-                            idx = -1
-                            for i, b in enumerate(skeleton.bones):
-                                if b.name == lod_socket.name:
-                                    idx = i
-                                    break
-                            if idx != -1:
-                                skeleton.bones.pop(idx)
                             
 
                     if armature.collections.find("Virtual Bones") != -1 and self.options.export_virtual_bones:
@@ -281,17 +293,35 @@ class UEFormatExport:
 
                             skeleton.virtual_bones.append(lod_vbone)
 
-                            idx = -1
-                            for i, b in enumerate(skeleton.bones):
-                                if b.name == lod_vbone.virtual_name:
-                                    idx = i
-                                    break
-                            if idx != -1:
-                                skeleton.bones.pop(idx)
-                        
                         bpy.ops.object.mode_set(mode="OBJECT")
+
+
+        for idx in sorted(socket_idxs, reverse=True):  # why does this work, it's so simple
+            for bone in skeleton.bones:
+                if not bone:
+                    continue
                 
+                if bone.parent_index == idx:
+                    bone.parent_index = -1
+                elif bone.parent_index > idx:
+                    bone.parent_index -= 1
+                
+                skeleton.bones[idx] = None
             
+            for lod in lods:
+                for widx, weight in enumerate(lod.weights.copy()):
+                    if not weight:
+                        continue
+                    
+                    if weight.bone_index == idx:
+                        lod.weights[widx] = None
+                    elif weight.bone_index > idx:
+                        weight.bone_index -= 1
+            
+                lod.weights = list(filter(lambda w: w is not None, lod.weights))
+        skeleton.bones = list(filter(lambda b: b is not None, skeleton.bones))
+        
+        
         uemodel = uf_classes.UEModel()
         if lods and len(lods) != 0:
             uemodel.lods = lods

@@ -5,7 +5,7 @@ from bpy.types import PropertyGroup
 
 
 class UMESettings(PropertyGroup):
-    scale_factor: FloatProperty(name="Scale", default=1.0, min=0.01) # type: ignore[reportInvalidTypeForm]
+    scale_factor: FloatProperty(name="Scale", default=100, min=0.01) # type: ignore[reportInvalidTypeForm]
     export_selected_only: BoolProperty(name="Export Only Selected", default=False) # type: ignore[reportInvalidTypeForm]
     # bone_length: FloatProperty(name="Bone Length", default=4.0, min=0.1) # type: ignore[reportInvalidTypeForm]
     # reorient_bones: BoolProperty(name="Reorient Bones", default=False) # type: ignore[reportInvalidTypeForm]
